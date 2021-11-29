@@ -1,3 +1,4 @@
 *.dxf
 *.dwg
+*.json
 venv/
