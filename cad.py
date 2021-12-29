@@ -1,8 +1,9 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-# © Copyright 2021 Ivan Huamani [ihuamani@uni.pe]
+# © Copyright 2021 Ivan Huamani [ihuamanis@uni.pe]
 # License: GPL <http://www.gnu.org/copyleft/gpl.html>
+# Source code: <https://github.com/ivansaul/gmi>
 
 # # **Python CAD**
 
@@ -212,4 +213,6 @@ for file in files:
 
 for i, csv_file in enumerate(csv_files):
     draw_dxf(csv_file)
-    print(f'[{i+1}] {csv_file[:-4]}.dxf file was built successfully')
+    print(f'[{i+1}/{len(csv_files)}] {csv_file[:-4]}.dxf file was built successfully')
+
+print('\n© Copyright 2021 ivansaul [ihuamanis@uni.pe]\n')
