@@ -2,3 +2,4 @@
 *.dwg
 *.json
 venv/
+*.ipynb_checkpoints/
