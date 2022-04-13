@@ -212,7 +212,12 @@ for file in files:
 
 
 for i, csv_file in enumerate(csv_files):
-    draw_dxf(csv_file)
-    print(f'[{i+1}/{len(csv_files)}] {csv_file[:-4]}.dxf file was built successfully')
+    try:
+        draw_dxf(csv_file)
+        print(f'[{i+1}] {csv_file[:-4]}.dxf file was built successfully')
+    except:
+        print(f'[{i+1}] ERROR! an error occurred with {csv_file}')
 
-print('\n© Copyright 2021 ivansaul [ihuamanis@uni.pe]\n')
+print('\nMade with ❤️ by @ivansaul [ihuamanis@uni.pe]\n')
+
+input()
