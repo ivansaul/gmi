@@ -4,3 +4,5 @@
 *.json
 venv/
 *.ipynb_checkpoints/
+test_files/
+.DS_STORE
