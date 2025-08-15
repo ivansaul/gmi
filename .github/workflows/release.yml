@@ -1,4 +1,4 @@
-name: Build and Release Topo
+name: Build and Release Lagarto
 
 on:
   push:
@@ -7,27 +7,18 @@ on:
 
 jobs:
   build:
-    name: Build ${{ matrix.os }} (${{ matrix.target }})
+    name: Build ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
         include:
-          # Linux
           - os: ubuntu-latest
             target: x86_64-unknown-linux-gnu
-
-          # Windows universal (GNU)
           - os: windows-latest
             target: x86_64-pc-windows-gnu
-
-          # macOS Intel
           - os: macos-latest
             target: x86_64-apple-darwin
-
-          # macOS Apple Silicon
-          - os: macos-latest
-            target: aarch64-apple-darwin
 
     steps:
       - name: Checkout repo
@@ -43,7 +34,7 @@ jobs:
           cd topo
           cargo build --release --target ${{ matrix.target }}
 
-      - name: Rename binary for release
+      - name: Rename binary to lagarto
         run: |
           cd topo/target/${{ matrix.target }}/release
           BIN_NAME="lagarto"
@@ -51,14 +42,26 @@ jobs:
           if [[ "${{ matrix.target }}" == *"windows"* ]]; then
             EXT=".exe"
           fi
-          mv "topo$EXT" "${BIN_NAME}-${{ matrix.target }}$EXT"
+          mv "topo$EXT" "${BIN_NAME}$EXT"
+        shell: bash
+
+      - name: Compress binary
+        run: |
+          cd topo/target/${{ matrix.target }}/release
+          BIN_NAME="lagarto"
+          EXT=""
+          if [[ "${{ matrix.target }}" == *"windows"* ]]; then
+            EXT=".exe"
+          fi
+          ZIP_NAME="lagarto-${{ matrix.os }}.zip"
+          zip -j $ZIP_NAME "${BIN_NAME}$EXT"
         shell: bash
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ matrix.target }}
-          path: topo/target/${{ matrix.target }}/release/lagarto-${{ matrix.target }}*
+          name: ${{ matrix.os }}
+          path: topo/target/${{ matrix.target }}/release/lagarto-${{ matrix.os }}.zip
 
   release:
     name: Create GitHub Release
@@ -78,7 +81,7 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           tag_name: topo-${{ steps.date.outputs.date }}
-          name: topo-${{ steps.date.outputs.date }}
-          files: artifacts/**/*
+          name: "Lagarto ${{ steps.date.outputs.date }}"
+          files: artifacts/**/*.zip
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

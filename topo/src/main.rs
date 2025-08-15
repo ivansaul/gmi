@@ -1,4 +1,5 @@
 use colored::Colorize;
+use std::io::stdin;
 use topo::draw::run;
 use topo::error::Result;
 use topo::helpers::list_csv_files;
@@ -20,5 +21,7 @@ fn main() -> Result<()> {
             .purple()
             .italic()
     );
+    let mut input = String::new();
+    let _ = stdin().read_line(&mut input);
     Ok(())
 }
