@@ -45,16 +45,19 @@ jobs:
           mv "topo$EXT" "${BIN_NAME}$EXT"
         shell: bash
 
-      - name: Compress binary
+      - name: Compress binary (cross-platform)
         run: |
           cd topo/target/${{ matrix.target }}/release
           BIN_NAME="lagarto"
           EXT=""
+          ZIP_NAME="lagarto-${{ matrix.os }}.zip"
           if [[ "${{ matrix.target }}" == *"windows"* ]]; then
             EXT=".exe"
+            powershell Compress-Archive -Path "${BIN_NAME}$EXT" -DestinationPath "$ZIP_NAME" -Force
+          else
+            if [[ "${{ matrix.target }}" == *"windows"* ]]; then EXT=".exe"; fi
+            zip -j $ZIP_NAME "${BIN_NAME}$EXT"
           fi
-          ZIP_NAME="lagarto-${{ matrix.os }}.zip"
-          zip -j $ZIP_NAME "${BIN_NAME}$EXT"
         shell: bash
 
       - name: Upload artifact
