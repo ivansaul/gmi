@@ -80,8 +80,8 @@ pub fn get_labels_data(df: &DataFrame) -> Vec<(Point, String)> {
 }
 
 pub fn get_points_by_label(df: &DataFrame, label: TopoLabel) -> Vec<Point> {
-    df.iter()
-        .filter(|item| item.label == label.name())
+    get_topo_points_by_label(df, label)
+        .iter()
         .map(TopoPoint::to_entity_point_3d)
         .collect()
 }
