@@ -19,8 +19,8 @@ pub fn read_csv(path: &Path) -> Result<Vec<TopoPoint>> {
 
     for result in reader.records() {
         let record = result?;
-        let filtrado: Vec<&str> = record.iter().take(5).collect();
-        writer.write_record(&filtrado)?;
+        let filtered: Vec<&str> = record.iter().take(5).collect();
+        writer.write_record(&filtered)?;
     }
 
     writer.flush()?;
