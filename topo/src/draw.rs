@@ -15,10 +15,10 @@ pub fn get_drawing() -> Drawing {
     Drawing::new()
 }
 
-pub fn add_headers(msp: &mut Drawing) {
-    msp.header.version = AcadVersion::R2000;
-    msp.header.point_display_mode = 35;
-    msp.header.point_display_size = 0.5;
+pub fn add_headers(drawing: &mut Drawing) {
+    drawing.header.version = AcadVersion::R12;
+    drawing.header.point_display_mode = 35;
+    drawing.header.point_display_size = 0.5;
 }
 
 pub fn draw_labels(drawing: &mut Drawing, df: &DataFrame) {
@@ -83,6 +83,7 @@ pub fn run(path: &Path) -> Result<()> {
 
     let mut dxf_path = path.to_path_buf();
     dxf_path.set_extension("dxf");
+    drawing.normalize();
     drawing.save_file(dxf_path)?;
     Ok(())
 }

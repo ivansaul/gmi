@@ -67,7 +67,9 @@ pub fn get_sections_data(df: &DataFrame) -> Vec<Vec<Point>> {
         group.push(point.to_entity_point_3d());
         previous = current;
     }
-    group_list.push(take(&mut group));
+    if !group.is_empty() {
+        group_list.push(take(&mut group));
+    }
     group_list
 }
 
