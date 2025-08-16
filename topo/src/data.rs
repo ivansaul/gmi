@@ -31,20 +31,19 @@ pub fn read_csv(path: &Path) -> Result<Vec<TopoPoint>> {
         items.push(result?);
     }
 
+    clean_data(&mut items);
     fs::remove_file(&temp_path)?;
-
-    Ok(clean_data(items))
+    Ok(items)
 }
 
-fn clean_data(df: DataFrame) -> DataFrame {
-    let mut filtered: Vec<TopoPoint> = df
-        .iter()
-        .filter(|item| !item.id.is_empty() || !item.label.is_empty())
-        .cloned()
-        .collect();
+fn clean_data(df: &mut DataFrame) {
+    df.iter_mut().for_each(|item| {
+        item.id = item.id.to_uppercase();
+        item.label = item.label.to_uppercase();
+    });
 
-    filtered.dedup();
-    filtered
+    df.retain(|item| !item.id.is_empty() || !item.label.is_empty());
+    df.dedup();
 }
 
 pub fn get_sections_data(df: &DataFrame) -> Vec<Vec<Point>> {
