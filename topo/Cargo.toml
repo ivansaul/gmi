@@ -11,3 +11,9 @@ dxf = "0.6.0"
 serde = { version = "1.0.219", features = ["derive"] }
 strum = { version = "0.27.2", features = ["derive"] }
 thiserror = "2.0.14"
+
+[profile.release]
+strip = true
+opt-level = "s"
+lto = true
+codegen-units = 1
