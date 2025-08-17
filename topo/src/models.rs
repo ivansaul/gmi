@@ -1,6 +1,5 @@
 use dxf::{Color, Point, tables::Layer};
-use serde::Deserialize;
-use strum::{AsRefStr, EnumIter, EnumString};
+use serde::{Deserialize, Deserializer};
 
 pub type DataFrame = Vec<TopoPoint>;
 
@@ -19,7 +18,7 @@ impl TopoPoint {
     }
 }
 
-#[derive(Debug, Clone, Copy, EnumIter, EnumString, AsRefStr)]
+#[derive(Debug, Clone)]
 pub enum TopoLabel {
     L,
     T,
@@ -30,18 +29,11 @@ pub enum TopoLabel {
     L2,
     L3,
     L4,
-    #[strum(serialize = "2D")]
     D2,
+    Unknown(String),
 }
 
 impl TopoLabel {
-    pub fn name(&self) -> &str {
-        match self {
-            TopoLabel::D2 => "2D",
-            _ => self.as_ref(),
-        }
-    }
-
     pub fn layer(&self) -> Layer {
         match self {
             TopoLabel::L => self.layer_from_color(1),
@@ -61,6 +53,10 @@ impl TopoLabel {
                 // TO-DO: line_weight: 0.1
                 ..Default::default()
             },
+            TopoLabel::Unknown(label) => Layer {
+                name: label.into(),
+                ..Default::default()
+            },
         }
     }
 
@@ -70,6 +66,52 @@ impl TopoLabel {
             color: Color::from_index(index),
             ..Default::default()
         }
+    }
+}
+
+impl TopoLabel {
+    pub fn name(&self) -> &str {
+        match self {
+            TopoLabel::L => "L",
+            TopoLabel::T => "T",
+            TopoLabel::P => "P",
+            TopoLabel::PP => "PP",
+            TopoLabel::SEC => "SEC",
+            TopoLabel::L1 => "L1",
+            TopoLabel::L2 => "L2",
+            TopoLabel::L3 => "L3",
+            TopoLabel::L4 => "L4",
+            TopoLabel::D2 => "2D",
+            TopoLabel::Unknown(label) => label,
+        }
+    }
+}
+
+impl TopoLabel {
+    pub fn from_str(s: &str) -> Self {
+        match s {
+            "L" => TopoLabel::L,
+            "T" => TopoLabel::T,
+            "P" => TopoLabel::P,
+            "PP" => TopoLabel::PP,
+            "SEC" => TopoLabel::SEC,
+            "L1" => TopoLabel::L1,
+            "L2" => TopoLabel::L2,
+            "L3" => TopoLabel::L3,
+            "L4" => TopoLabel::L4,
+            "2D" => TopoLabel::D2,
+            other => TopoLabel::Unknown(other.into()),
+        }
+    }
+}
+
+impl<'de> Deserialize<'de> for TopoLabel {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        let s = String::deserialize(deserializer)?;
+        Ok(TopoLabel::from_str(&s))
     }
 }
 

@@ -84,12 +84,8 @@ pub fn draw_polyline(
 }
 
 fn ensure_layer_is_present(drawing: &mut Drawing, layer_name: &str) {
-    let layer = layer_name
-        .parse::<TopoLabel>()
-        .map(|x| x.layer())
-        .unwrap_or_default();
-
     if !drawing.layers().any(|l| l.name == layer_name) {
+        let layer = TopoLabel::from_str(layer_name).layer();
         drawing.add_layer(layer);
     }
 }
