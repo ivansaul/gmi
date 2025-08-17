@@ -42,7 +42,7 @@ fn clean_data(df: &mut DataFrame) {
         item.label = item.label.to_uppercase();
     });
 
-    df.retain(|item| !item.id.is_empty() || !item.label.is_empty());
+    df.retain(|item| !item.id.is_empty() && !item.label.is_empty());
     df.dedup();
 }
 
