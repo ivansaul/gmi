@@ -1,11 +1,14 @@
 use crate::error::Result;
-use crate::models::{DataFrame, TopoLabel, TopoPoint};
+use crate::models::{DataFrame, TopoRecord, TopoTag};
+use crate::traits::ToTopo;
+use defer::defer;
 use dxf::Point;
 use std::fs;
 use std::path::{Path, PathBuf};
 
-pub fn read_csv(path: &Path) -> Result<Vec<TopoPoint>> {
+pub fn read_csv(path: &Path) -> Result<Vec<TopoRecord>> {
     let temp_path: PathBuf = path.with_extension("tmp");
+    defer!(fs::remove_file(&temp_path).unwrap_or_default());
 
     let mut reader = csv::ReaderBuilder::new()
         .has_headers(false)
@@ -15,56 +18,54 @@ pub fn read_csv(path: &Path) -> Result<Vec<TopoPoint>> {
         .has_headers(true)
         .from_path(&temp_path)?;
 
-    writer.write_record(["id", "x", "y", "z", "label"])?;
+    writer.write_record(["id", "x", "y", "z", "tag"])?;
 
     for result in reader.records() {
         let record = result?;
-        let filtrado: Vec<&str> = record.iter().take(5).collect();
-        writer.write_record(&filtrado)?;
+        let filtered: Vec<&str> = record.iter().take(5).collect();
+        writer.write_record(&filtered)?;
     }
 
     writer.flush()?;
 
     let mut reader = csv::Reader::from_path(&temp_path)?;
-    let mut items: Vec<TopoPoint> = Vec::new();
-    for result in reader.deserialize::<TopoPoint>() {
-        items.push(result?);
+    let mut records: Vec<TopoRecord> = Vec::new();
+    for record in reader.deserialize::<TopoRecord>() {
+        records.push(record?);
     }
 
-    fs::remove_file(&temp_path)?;
-
-    Ok(clean_data(items))
+    clean_data(&mut records);
+    Ok(records)
 }
 
-fn clean_data(df: DataFrame) -> DataFrame {
-    let mut filtered: Vec<TopoPoint> = df
-        .iter()
-        .filter(|item| !item.id.is_empty() || !item.label.is_empty())
-        .cloned()
-        .collect();
+pub fn clean_data(df: &mut DataFrame) {
+    df.iter_mut().for_each(|record| {
+        record.id = record.id.to_uppercase();
+        record.tag = record.tag.to_uppercase();
+    });
 
-    filtered.dedup();
-    filtered
+    df.retain(|record| !record.id.is_empty() && !record.tag.is_empty());
+    df.dedup();
 }
 
-pub fn get_sections_data(df: &DataFrame) -> Vec<Vec<Point>> {
+pub fn get_section_groups(df: &DataFrame) -> Vec<Vec<Point>> {
     use std::mem::take;
 
-    let topo_points: Vec<&TopoPoint> = df
+    let records: Vec<&TopoRecord> = df
         .iter()
-        .filter(|item| item.label == TopoLabel::SEC.name())
+        .filter(|record| record.tag == TopoTag::SEC.name())
         .collect();
 
     let mut previous = 0;
     let mut group: Vec<Point> = Vec::new();
     let mut group_list: Vec<Vec<Point>> = Vec::new();
 
-    for point in topo_points {
-        let current = point.id.parse::<i32>().unwrap_or(0);
+    for record in records {
+        let current = record.id.parse::<i32>().unwrap_or(0);
         if previous > current {
             group_list.push(take(&mut group));
         }
-        group.push(point.to_entity_point_3d());
+        group.push(record.to_3d_point());
         previous = current;
     }
     if !group.is_empty() {
@@ -73,23 +74,42 @@ pub fn get_sections_data(df: &DataFrame) -> Vec<Vec<Point>> {
     group_list
 }
 
-pub fn get_labels_data(df: &DataFrame) -> Vec<(Point, String)> {
-    get_topo_points_by_label(df, TopoLabel::PP)
-        .iter()
-        .map(|item| (item.to_entity_point_3d(), item.id.clone()))
+pub fn group_by_tag<T>(df: &DataFrame, tag: &TopoTag) -> Vec<Vec<T>>
+where
+    T: ToTopo,
+{
+    use std::mem::take;
+    let mut group: Vec<T> = Vec::new();
+    let mut group_list: Vec<Vec<T>> = Vec::new();
+
+    for record in df.iter() {
+        if record.tag == tag.name() {
+            group.push(T::convert(record));
+        } else if !group.is_empty() {
+            group_list.push(take(&mut group));
+        }
+    }
+    if !group.is_empty() {
+        group_list.push(take(&mut group));
+    }
+    group_list
+}
+
+pub fn filter_by_tag<T>(df: &DataFrame, tag: &TopoTag) -> Vec<T>
+where
+    T: ToTopo,
+{
+    df.iter()
+        .filter(|record| record.tag == tag.name())
+        .map(T::convert)
         .collect()
 }
 
-pub fn get_points_by_label(df: &DataFrame, label: TopoLabel) -> Vec<Point> {
+pub fn get_df_unique_tags(df: &DataFrame) -> Vec<String> {
+    use std::collections::HashSet;
     df.iter()
-        .filter(|item| item.label == label.name())
-        .map(TopoPoint::to_entity_point_3d)
-        .collect()
-}
-
-fn get_topo_points_by_label(df: &DataFrame, label: TopoLabel) -> Vec<TopoPoint> {
-    df.iter()
-        .filter(|item| item.label == label.name())
-        .cloned()
-        .collect()
+        .map(|record| record.tag.clone())
+        .collect::<HashSet<String>>()
+        .into_iter()
+        .collect::<Vec<String>>()
 }
