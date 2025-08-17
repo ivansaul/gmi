@@ -1,11 +1,13 @@
 use crate::error::Result;
 use crate::models::{DataFrame, TopoLabel, TopoPoint};
+use defer::defer;
 use dxf::Point;
 use std::fs;
 use std::path::{Path, PathBuf};
 
 pub fn read_csv(path: &Path) -> Result<Vec<TopoPoint>> {
     let temp_path: PathBuf = path.with_extension("tmp");
+    defer!(fs::remove_file(&temp_path).unwrap_or_default());
 
     let mut reader = csv::ReaderBuilder::new()
         .has_headers(false)
@@ -32,7 +34,6 @@ pub fn read_csv(path: &Path) -> Result<Vec<TopoPoint>> {
     }
 
     clean_data(&mut items);
-    fs::remove_file(&temp_path)?;
     Ok(items)
 }
 
