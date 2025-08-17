@@ -1,85 +1,89 @@
 use crate::core;
 use crate::data;
-use crate::data::get_points_by_label;
+use crate::data::filter_by_tag;
+use crate::data::get_df_unique_tags;
 use crate::error::Result;
 use crate::models::DataFrame;
-use crate::models::ToDxfPoint;
-use crate::models::TopoLabel;
+use crate::models::TopoRecord;
+use crate::models::TopoTag;
 use dxf::Drawing;
 use dxf::Point;
 use dxf::enums::AcadVersion;
 use std::path::Path;
-use strum::IntoEnumIterator;
 
-pub fn get_drawing() -> Drawing {
+fn get_drawing() -> Drawing {
     Drawing::new()
 }
 
-pub fn add_headers(drawing: &mut Drawing) {
+fn add_headers(drawing: &mut Drawing) {
     drawing.header.version = AcadVersion::R12;
     drawing.header.point_display_mode = 35;
     drawing.header.point_display_size = 0.5;
 }
 
-pub fn draw_labels(drawing: &mut Drawing, df: &DataFrame) {
-    let layer_name = Some(TopoLabel::PP.name());
-    let data = data::get_labels_data(df);
-    for (point, text) in data {
-        core::draw_point(drawing, point.clone(), layer_name);
-        core::draw_text(drawing, point.clone(), text, layer_name);
-    }
-}
-
-pub fn draw_seccions(drawing: &mut Drawing, df: &DataFrame) {
-    let layer_name = Some(TopoLabel::SEC.name());
-    let data = data::get_sections_data(df);
-    for points in data {
-        core::draw_polyline(drawing, points, true, layer_name);
-    }
-}
-
-pub fn draw_ltp(drawing: &mut Drawing, df: &DataFrame) {
-    for label in TopoLabel::iter() {
-        match label {
-            TopoLabel::PP => continue,
-            TopoLabel::SEC => continue,
-            TopoLabel::D2 => continue,
-            _ => {
-                let data = data::get_points_by_label(df, label);
-                if !data.is_empty() {
-                    core::draw_polyline(drawing, data, false, Some(label.name()));
-                }
-            }
-        }
-    }
-}
-
-pub fn draw_2d(drawing: &mut Drawing, df: &DataFrame) {
-    // PP + LABEL
-    let layer_name = Some(TopoLabel::D2.name());
-    let data = data::get_labels_data(df);
-    for (point, text) in data {
-        core::draw_point(drawing, point.to_2d(), layer_name);
-        core::draw_text(drawing, point.to_2d(), text, layer_name);
-    }
-
-    // L
-    let data = get_points_by_label(df, TopoLabel::L)
+fn draw_pp(drawing: &mut Drawing, df: &DataFrame) {
+    let tag = TopoTag::PP;
+    let layer = Some(tag.name());
+    data::filter_by_tag::<TopoRecord>(df, &tag)
         .into_iter()
-        .map(|point| point.to_2d())
-        .collect::<Vec<Point>>();
-
-    core::draw_polyline_lw(drawing, data, false, layer_name);
+        .for_each(|r| core::draw_label(drawing, r.to_3d_point(), r.tag, layer));
 }
 
-pub fn run(path: &Path) -> Result<()> {
+fn draw_sec(drawing: &mut Drawing, df: &DataFrame) {
+    let layer = Some(TopoTag::SEC.name());
+    data::get_section_groups(df)
+        .into_iter()
+        .for_each(|v| core::draw_polyline(drawing, v, true, layer));
+}
+
+fn draw_ltpx(drawing: &mut Drawing, df: &DataFrame) {
+    get_df_unique_tags(df)
+        .iter()
+        .map(|x| TopoTag::from_str(x))
+        .for_each(|tag| match tag {
+            TopoTag::PP => {}
+            TopoTag::SEC => {}
+            TopoTag::D2 => {}
+            _ => _draw_ltpx(drawing, df, &tag),
+        });
+}
+
+fn draw_2d(drawing: &mut Drawing, df: &DataFrame) {
+    let layer = Some(TopoTag::D2.name());
+    data::filter_by_tag::<TopoRecord>(df, &TopoTag::PP)
+        .into_iter()
+        .for_each(|r| core::draw_label(drawing, r.to_2d_point(), r.tag, layer));
+
+    let vertices = filter_by_tag::<Point>(df, &TopoTag::L);
+    core::draw_lw_polyline(drawing, vertices, false, layer);
+}
+
+fn _draw_ltpx(drawing: &mut Drawing, df: &DataFrame, tag: &TopoTag) {
+    let groups = data::group_by_tag::<TopoRecord>(df, &tag);
+    for group in groups {
+        if group.len() == 1 {
+            let record = group.first().unwrap();
+            core::draw_label(
+                drawing,
+                record.to_3d_point(),
+                record.tag.clone(),
+                Some(tag.name()),
+            );
+            continue;
+        }
+        let vertices = group.iter().map(|r| r.to_3d_point()).collect();
+        core::draw_polyline(drawing, vertices, false, Some(tag.name()));
+    }
+}
+
+pub fn draw(path: &Path) -> Result<()> {
     let df = data::read_csv(path)?;
     let mut drawing = get_drawing();
     add_headers(&mut drawing);
-    draw_labels(&mut drawing, &df);
-    draw_ltp(&mut drawing, &df);
-    draw_seccions(&mut drawing, &df);
+    draw_pp(&mut drawing, &df);
+    draw_sec(&mut drawing, &df);
     draw_2d(&mut drawing, &df);
+    draw_ltpx(&mut drawing, &df);
 
     let mut dxf_path = path.to_path_buf();
     dxf_path.set_extension("dxf");

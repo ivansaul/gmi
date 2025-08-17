@@ -1,25 +1,28 @@
 use dxf::{Color, Point, tables::Layer};
 use serde::{Deserialize, Deserializer};
 
-pub type DataFrame = Vec<TopoPoint>;
+pub type DataFrame = Vec<TopoRecord>;
 
 #[derive(Debug, Deserialize, PartialEq, Clone, Default)]
-pub struct TopoPoint {
+pub struct TopoRecord {
     pub id: String,
     x: f64,
     y: f64,
     z: f64,
-    pub label: String,
+    pub tag: String,
 }
 
-impl TopoPoint {
-    pub fn to_entity_point_3d(&self) -> Point {
+impl TopoRecord {
+    pub fn to_3d_point(&self) -> Point {
         Point::new(self.x, self.y, self.z)
+    }
+    pub fn to_2d_point(&self) -> Point {
+        Point::new(self.x, self.y, 0.0)
     }
 }
 
 #[derive(Debug, Clone)]
-pub enum TopoLabel {
+pub enum TopoTag {
     L,
     T,
     P,
@@ -33,19 +36,19 @@ pub enum TopoLabel {
     Unknown(String),
 }
 
-impl TopoLabel {
+impl TopoTag {
     pub fn layer(&self) -> Layer {
         match self {
-            TopoLabel::L => self.layer_from_color(1),
-            TopoLabel::T => self.layer_from_color(6),
-            TopoLabel::P => self.layer_from_color(2),
-            TopoLabel::PP => self.layer_from_color(188),
-            TopoLabel::SEC => self.layer_from_color(7),
-            TopoLabel::L1 => self.layer_from_color(4),
-            TopoLabel::L2 => self.layer_from_color(3),
-            TopoLabel::L3 => self.layer_from_color(5),
-            TopoLabel::L4 => self.layer_from_color(40),
-            TopoLabel::D2 => Layer {
+            TopoTag::L => self.layer_from_color(1),
+            TopoTag::T => self.layer_from_color(6),
+            TopoTag::P => self.layer_from_color(2),
+            TopoTag::PP => self.layer_from_color(188),
+            TopoTag::SEC => self.layer_from_color(7),
+            TopoTag::L1 => self.layer_from_color(4),
+            TopoTag::L2 => self.layer_from_color(3),
+            TopoTag::L3 => self.layer_from_color(5),
+            TopoTag::L4 => self.layer_from_color(40),
+            TopoTag::D2 => Layer {
                 name: self.name().into(),
                 color: Color::from_index(234),
                 line_type_name: "DASHED".into(),
@@ -53,7 +56,7 @@ impl TopoLabel {
                 // TO-DO: line_weight: 0.1
                 ..Default::default()
             },
-            TopoLabel::Unknown(label) => Layer {
+            TopoTag::Unknown(label) => Layer {
                 name: label.into(),
                 ..Default::default()
             },
@@ -69,58 +72,48 @@ impl TopoLabel {
     }
 }
 
-impl TopoLabel {
+impl TopoTag {
     pub fn name(&self) -> &str {
         match self {
-            TopoLabel::L => "L",
-            TopoLabel::T => "T",
-            TopoLabel::P => "P",
-            TopoLabel::PP => "PP",
-            TopoLabel::SEC => "SEC",
-            TopoLabel::L1 => "L1",
-            TopoLabel::L2 => "L2",
-            TopoLabel::L3 => "L3",
-            TopoLabel::L4 => "L4",
-            TopoLabel::D2 => "2D",
-            TopoLabel::Unknown(label) => label,
+            TopoTag::L => "L",
+            TopoTag::T => "T",
+            TopoTag::P => "P",
+            TopoTag::PP => "PP",
+            TopoTag::SEC => "SEC",
+            TopoTag::L1 => "L1",
+            TopoTag::L2 => "L2",
+            TopoTag::L3 => "L3",
+            TopoTag::L4 => "L4",
+            TopoTag::D2 => "2D",
+            TopoTag::Unknown(label) => label,
         }
     }
 }
 
-impl TopoLabel {
+impl TopoTag {
     pub fn from_str(s: &str) -> Self {
         match s {
-            "L" => TopoLabel::L,
-            "T" => TopoLabel::T,
-            "P" => TopoLabel::P,
-            "PP" => TopoLabel::PP,
-            "SEC" => TopoLabel::SEC,
-            "L1" => TopoLabel::L1,
-            "L2" => TopoLabel::L2,
-            "L3" => TopoLabel::L3,
-            "L4" => TopoLabel::L4,
-            "2D" => TopoLabel::D2,
-            other => TopoLabel::Unknown(other.into()),
+            "L" => TopoTag::L,
+            "T" => TopoTag::T,
+            "P" => TopoTag::P,
+            "PP" => TopoTag::PP,
+            "SEC" => TopoTag::SEC,
+            "L1" => TopoTag::L1,
+            "L2" => TopoTag::L2,
+            "L3" => TopoTag::L3,
+            "L4" => TopoTag::L4,
+            "2D" => TopoTag::D2,
+            other => TopoTag::Unknown(other.into()),
         }
     }
 }
 
-impl<'de> Deserialize<'de> for TopoLabel {
+impl<'de> Deserialize<'de> for TopoTag {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where
         D: Deserializer<'de>,
     {
         let s = String::deserialize(deserializer)?;
-        Ok(TopoLabel::from_str(&s))
-    }
-}
-
-pub trait ToDxfPoint {
-    fn to_2d(&self) -> Point;
-}
-
-impl ToDxfPoint for Point {
-    fn to_2d(&self) -> Self {
-        Point::new(self.x, self.y, 0.0)
+        Ok(TopoTag::from_str(&s))
     }
 }
