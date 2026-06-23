@@ -39,7 +39,7 @@ pub enum TopoTag {
 impl TopoTag {
     pub fn layer(&self) -> Layer {
         match self {
-            TopoTag::L => self.layer_from_color(1),
+            TopoTag::L => self.layer_from_color(5),
             TopoTag::T => self.layer_from_color(5),
             TopoTag::P => self.layer_from_color(2),
             TopoTag::PP => self.layer_from_color(30),
