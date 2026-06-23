@@ -40,14 +40,14 @@ impl TopoTag {
     pub fn layer(&self) -> Layer {
         match self {
             TopoTag::L => self.layer_from_color(1),
-            TopoTag::T => self.layer_from_color(6),
+            TopoTag::T => self.layer_from_color(5),
             TopoTag::P => self.layer_from_color(2),
-            TopoTag::PP => self.layer_from_color(188),
+            TopoTag::PP => self.layer_from_color(30),
             TopoTag::SEC => self.layer_from_color(7),
-            TopoTag::L1 => self.layer_from_color(4),
-            TopoTag::L2 => self.layer_from_color(3),
-            TopoTag::L3 => self.layer_from_color(5),
-            TopoTag::L4 => self.layer_from_color(40),
+            TopoTag::L1 => self.layer_from_color(3),
+            TopoTag::L2 => self.layer_from_color(4),
+            TopoTag::L3 => self.layer_from_color(6),
+            TopoTag::L4 => self.layer_from_color(1),
             TopoTag::D2 => Layer {
                 name: self.name().into(),
                 color: Color::from_index(234),
